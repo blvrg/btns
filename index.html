@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>btns</title>
+    <style>
+        #result {
+            margin-top: 20px;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <h1>btns</h1>
+    <select id="filter" onchange="getBroadcasts(this.value)">
+        <option value="all">All</option>
+        <option value="bt:DEPLOY">Deploy</option>
+        <option value="bt:MINT">Mint</option>
+        <option value="bt:TRANSFER">Transfer</option>
+    </select>
+    <select id="sort" onchange="getBroadcasts(document.getElementById('filter').value)">
+        <option value="asc">Oldest</option>
+        <option value="desc">Newest</option>
+    </select>
+
+    <div id="result"></div>
+
+    <script>
+        function getBroadcastsForBlock(blockNumber, filter) {
+            let apiUrl = `http://xchain.io/api/broadcasts/${blockNumber}`;
+
+            return fetch(apiUrl)
+                .then(response => response.json())
+                .then(data => {
+                    let filteredBroadcasts = data.data.filter(broadcast => {
+                        if (filter === 'all') {
+                            return /^(bt|btns)/.test(broadcast.text);
+                        } else {
+                            return broadcast.text.startsWith(filter);
+                        }
+                    });
+
+                    data.total = filteredBroadcasts.length;
+                    data.data = filteredBroadcasts;
+
+                    return data;
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    return 'Error occurred. See console for details.';
+                });
+        }
+
+        function getBroadcasts(filter = 'all') {
+            let startBlock = 789740;
+            let endBlock;
+            let sortDirection = document.getElementById('sort').value;
+
+            fetch('https://blockchain.info/q/getblockcount')
+                .then(response => response.text())
+                .then(block => {
+                    endBlock = parseInt(block);
+                    let broadcasts = [];
+
+                    document.getElementById('result').innerText = ''; // Clear the results
+
+                    if (sortDirection === "asc") {
+                        for (let i = startBlock; i <= endBlock; i++) {
+                            fetchBroadcastsForBlock(i, filter, broadcasts);
+                        }
+                    } else {
+                        for (let i = endBlock; i >= startBlock; i--) {
+                            fetchBroadcastsForBlock(i, filter, broadcasts);
+                        }
+                    }
+                })
+                .catch(err => console.error('Error:', err));
+        }
+
+        function fetchBroadcastsForBlock(blockNumber, filter, broadcasts) {
+            getBroadcastsForBlock(blockNumber, filter).then(data => {
+                if (data.data.length > 0) {
+                    let filteredData = data.data.filter(broadcast => broadcast.status === 'valid');
+                    if (filteredData.length > 0) {
+                        data.data = filteredData;
+                        broadcasts.push(data);
+                    }
+                }
+                document.getElementById('result').innerText = JSON.stringify(broadcasts, null, 2);
+            });
+        }
+
+        window.onload = function() {
+            getBroadcasts(); // Load broadcasts when the page loads
+        };
+    </script>
+</body>
+</html>
