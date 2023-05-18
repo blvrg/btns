@@ -27,7 +27,7 @@
 
     <script>
         function getBroadcastsForBlock(blockNumber, filter) {
-            let apiUrl = `http://xchain.io/api/broadcasts/${blockNumber}`;
+            let apiUrl = `https://xchain.io/api/broadcasts/${blockNumber}`;
 
             return fetch(apiUrl)
                 .then(response => response.json())
